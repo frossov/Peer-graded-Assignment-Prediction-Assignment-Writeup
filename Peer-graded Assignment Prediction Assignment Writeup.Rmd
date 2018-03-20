@@ -1,0 +1,68 @@
+---
+title: 'Peer-graded Assignment: Prediction Assignment Writeup'
+author: "Frosso Vorgia"
+---
+```{r}
+set.seed(1234)
+trainset<- read.csv("C:/Users/Fro/Documents/pml-training.csv", sep = ",", header = TRUE, na.strings = c("NA","NaN","N/A"))
+testset<- read.csv("C:/Users/Fro/Documents/pml-testing.csv", sep = ",", header = TRUE, na.strings = c("NA","NaN","N/A"))
+```
+
+```{r}
+trainset <- trainset[c(-1)]
+refineTrainset<-trainset
+for(i in 1:length(trainset)) { 
+        if( sum( is.na( trainset[, i] ) ) /nrow(trainset) >= .9 ) { 
+        for(j in 1:length(refineTrainset)) {
+            if( length( grep(names(trainset[i]), names(refineTrainset)[j]) ) ==1)  { 
+                refineTrainset <- refineTrainset[ , -j] 
+            }   
+        } 
+    }
+}
+```
+
+```{r}
+testset <- testset[c(-1)]
+refineTestset<-testset
+for(i in 1:length(testset)) { 
+        if( sum( is.na( testset[, i] ) ) /nrow(testset) >= .6 ) { 
+        for(j in 1:length(refineTestset)) {
+            if( length( grep(names(testset[i]), names(refineTestset)[j]) ) ==1)  { 
+                refineTestset <- refineTestset[ , -j] #Remove that column
+            }   
+        } 
+    }
+}
+```
+
+```{r}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+InTrain<-createDataPartition(y=refineTrainset$classe, p=0.70, list=FALSE)
+training<- refineTrainset[InTrain,]
+testing<- refineTrainset[-InTrain,]
+```
+
+```{r}
+modeldecisiontree<-rpart(classe~., data=training, method = "class")
+predictiondecisiontree <- predict(model1, testing, type = "class")
+rpart.plot(modeldecisiontree, main="Classification Tree", extra=102, under=TRUE, faclen=0)
+```
+
+```{r}
+confusionmatrix(predictiondecisiontree, testing$classe)
+```
+
+```{r}
+modelrandomforest <- randomForest(classe ~. , data=training, method="class")
+predictionrandomforest <- predict(modelrandomforest, testing, type = "class")
+confusionmatrix(predictionrandomforest, testing$classe)
+```
+
+```{r}
+applyprediction <- predict(modelrandomforest, refineTestset, type="class")
+applyprediction
+```
