@@ -1,0 +1,73 @@
+---
+title: "Machine learning algorithms"
+author: "Frosso Vorgia"
+---
+
+It is now possible to collect a large amount of data about personal activity relatively inexpensively.In this project we use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+##Packages
+First we load the necessary packaeges and set a seed in order to reproduce the research and receive the same results.
+```{r}
+library(caret)
+library(randomForest)
+library(rpart) 
+library(rpart.plot)
+set.seed(9664)
+```
+
+##Loading the datasets
+The first set will be used for training and the other for the prediction.
+```{r}
+TrainingSet <- read.csv("C:/Users/Fro/Documents/pml-training.csv", na.strings=c("NA","#DIV/0!", ""))
+TestingSet <- read.csv("C:/Users/Fro/Documents/pml-testing.csv", na.strings=c("NA","#DIV/0!", ""))
+```
+
+##Cleaning
+It is necessary to clean the set from too many NAs and unwanted or unnecessary information.
+```{r}
+TrainingSet<-TrainingSet[,colSums(is.na(TrainingSet)) == 0]
+TestingSet <-TestingSet[,colSums(is.na(TestingSet)) == 0]
+TrainingSet <-TrainingSet[,-c(1:7)]
+TestingSet <-TestingSet[,-c(1:7)]
+```
+
+##Creating partitions
+We can create two clean partitions. We prefer the 70 - 30 analogy for the training set.
+```{r}
+SubSamples <- createDataPartition(y=TrainingSet$classe, p=0.7, list=FALSE)
+SubTraining <- TrainingSet[SubSamples, ] 
+SubTesting <- TrainingSet[-SubSamples, ]
+dim(SubTraining)
+dim(SubTesting)
+```
+
+##The Decision Tree model
+The first mla we apply is the Decision Tree.
+```{r}
+ModelDecisionTree <- rpart(classe ~ ., data=SubTraining, method="class")
+
+PredictionDecisionTree <- predict(ModelDecisionTree, SubTesting, type = "class")
+
+rpart.plot(ModelDecisionTree, main="Classification Tree", extra=102, under=TRUE, faclen=0)
+```
+
+```{r}
+confusionMatrix(PredictionDecisionTree, SubTesting$classe)
+```
+
+##The Random Forest model
+The second mla we apply is the Random Forest.
+```{r}
+ModelRandomForest <- randomForest(classe ~. , data=SubTraining, method="class")
+
+PredictionRandomForest <- predict(ModelRandomForest, SubTesting, type = "class")
+
+confusionMatrix(PredictionRandomForest, SubTesting$classe)
+```
+Random Forest performed better than Decision Tree. The accuracy rate is 99% and 75% respectively. The out of sample error is 0.58% for the Random Forest and 25.03% for Decision Tree. As a result, the next prediction will be done with Random Forest.
+
+##The prediction
+```{r}
+LastPrediction <- predict(ModelRandomForest, TestingSet, type="class")
+LastPrediction
+```
